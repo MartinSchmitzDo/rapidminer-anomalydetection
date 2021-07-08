@@ -32,7 +32,7 @@ extensionConfig {
      *
      * It is 'RapidMiner GmbH' by default.
      */
-    vendor = "Marku Goldstein & RapidMiner GmbH"
+    vendor = "Markus Goldstein & RapidMiner GmbH"
 
     /*
      * The vendor homepage which will be displayed in the extensions about box

@@ -66,6 +66,12 @@
                     <class>de.dfki.madm.anomalydetection.operator.cluster_based.CMGOSAnomalyDetectionOperator
                     </class>
                 </operator>
+
+                <operator>
+                    <key>cluster_based_anomaly</key>
+                    <class>com.rapidminer.extension.anomaly_detection.operator.clustering.ClusterBasedAnomalyDetectionOperator
+                    </class>
+                </operator>
             </group>
 
             <group key="statistical_based">
