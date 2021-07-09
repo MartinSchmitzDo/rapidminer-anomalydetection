@@ -70,57 +70,148 @@
                 CBLOF
             </paragraph>
         </text>
-<!--        <inputPorts>-->
-<!--            <port name="input" type="com.rapidminer.example.ExampleSet">-->
-<!--                Input port description.-->
-<!--            </port>-->
-<!--        </inputPorts>-->
-<!--        <outputPorts>-->
-<!--            <port name="output" type="com.rapidminer.example.ExampleSet">-->
-<!--                Output port description.-->
-<!--            </port>-->
-<!--        </outputPorts>-->
+        <inputPorts>
 
-<!--        &lt;!&ndash; description of the parameters and the corresponding values &ndash;&gt;-->
-<!--        <parameters>-->
-<!--            <parameter key="first_parameter" type="configurable">-->
-<!--                Description here-->
-<!--            </parameter>-->
-<!--            <parameter key="second_parameter" type="selection">-->
-<!--                Description here-->
-<!--            </parameter>-->
-<!--            <parameter key="third_parameter" type="">-->
-<!--                Description here-->
-<!--            </parameter>-->
-<!--        </parameters>-->
+            <port name="exa" type="com.rapidminer.example.ExampleSet">
+                The example set you want to run the algorithm on.
+            </port>
+            <port name="mod">
+                A clustering model like k-Means clustering.
+            </port>
 
-<!--        <tutorialProcesses>-->
-<!--            <tutorialProcess key="process.python.clustering" title="Clustering using Python">-->
-<!--                <description>-->
-<!--                    <paragraph>-->
-<!--                        Tutorial description here.-->
-<!--                    </paragraph>-->
-<!--                </description>-->
-<!--                <process version="6.4.000">-->
-<!--                    <context>-->
-<!--                        <input/>-->
-<!--                        <output/>-->
-<!--                        <macros/>-->
-<!--                    </context>-->
-<!--                    <operator activated="true" class="process" compatibility="6.4.000" expanded="true" name="Process">-->
-<!--                        <process expanded="true">-->
-<!--                            <operator activated="true" class="retrieve" compatibility="6.4.000" expanded="true" height="60" name="Retrieve Iris" width="90" x="380" y="210">-->
-<!--                                <parameter key="repository_entry" value="//Samples/data/Iris"/>-->
-<!--                            </operator>-->
-<!--                            <connect from_op="Retrieve Iris" from_port="output" to_port="result 1"/>-->
-<!--                            <portSpacing port="source_input 1" spacing="0"/>-->
-<!--                            <portSpacing port="sink_result 1" spacing="0"/>-->
-<!--                            <portSpacing port="sink_result 2" spacing="0"/>-->
-<!--                        </process>-->
-<!--                    </operator>-->
-<!--                </process>-->
-<!--            </tutorialProcess>-->
-<!--        </tutorialProcesses>-->
+        </inputPorts>
+        <outputPorts>
+            <port name="exa" type="com.rapidminer.example.ExampleSet">
+                The scored example set.
+            </port>
+            <port name="mod">
+                An anomaly model which can be used to apply this model on new data.
+            </port>
+            <port name="clu">
+                The initial clustering model passed through.
+            </port>
+        </outputPorts>
+        <parameters>
+            <parameter key="algorithm">
+                Defines which algorithm you want to take. Currently CBLOF, CMGOS or LDCOF.
+            </parameter>
+            <parameter key="alpha">
+                alpha specifies the percentage of normal data
+            </parameter>
+            <parameter key="beta">
+                The minimum ratio between a normal and anomalous cluster
+            </parameter>
+            <parameter key="use cluster size as weighting factor">
+                Uses the cluster size as a weight factor as proposed by the original publication.
+            </parameter>
+            <parameter key="divide clusters like cblof">If set to true we will not use alpha and beta, but use gamma
+                instead (like in CBLOF).
+            </parameter>
+            <parameter key="gamma_(ldcof)">
+                ratio between the maximum size of small clusters and the average cluster size. Small clusters are
+                removed.
+            </parameter>
+
+            <parameter key="lambda">Lambda for regularization (see Friedmann). A lambda of 0.0 menas QDA (each cluster
+                has its own covariance) and a lambda of 1.0 means LDA (a global covariance matrix).
+            </parameter>
+            <parameter key="covariance estimation">
+                The algorithm to estimate the covariance matrics. Reduction is the simplest method whereas the other two
+                are more complex. Details can be found in the papers (see Operator description).
+            </parameter>
+            <parameter key="h (non-outlier instances)">
+                This parameter specifies the number of samples for fastMCD/MCD to be used for a computation
+                (non-outliers). If set to -1 it is automatically computed according to the 'probability for normal
+                class'. Friedmann et al recommend to use 75% of the examples as a good estimate. The upper bound is the
+                numer of examples and the lower bound is (number of examples * dimensions +1)/2. Values exceeding these
+                limits will be replaced by the limit.
+            </parameter>
+            <parameter key="number of subsets">
+                Defines the number of subsets used in fastMCD. Friedmann recommends to have at most 5 subsets.
+            </parameter>
+            <parameter key="threshold for fastMCD">
+                If the number of examples in the dataset exceeds the threshold, fastMCD will be applied instead of MCD
+                (complete search). Not recommended to be higher than 600 due to computational issues.
+            </parameter>
+            <parameter key="iterations">
+                Number of iterations for computing the MCD. 100-500 might be a good choice.
+            </parameter>
+            <parameter key="number of threads">
+                "The number of threads for the computation"
+            </parameter>
+            <parameter key="times to remove outlier">
+                The number of times outlier should be removed for minimum covariance determinant
+            </parameter>
+            <parameter key="probability for normal class">
+                This is the expected probability of normal data instances. Usually it should be between 0.95 and 1.0 to
+                make sense.
+            </parameter>
+            <parameter key="limit computations">
+                Limit the number of instances to calculate the covariance matrix. Should be used for very large
+                clusters. The sampling of the instances is a random choice.
+            </parameter>
+            <parameter key="maximum">
+                Maximum number of instances for covariance matrix calculation
+            </parameter>
+            <parameter key="parallelize evaluation process">
+                Specifies that evaluation process should be performed in parallel
+            </parameter>
+            <parameter key="gamma">Parameter name for gamma &quot; ratio between the maximum size of small clusters and
+                the average cluster size. Small clusters are removed
+            </parameter>
+
+        </parameters>
+        <!--        <inputPorts>-->
+        <!--            <port name="input" type="com.rapidminer.example.ExampleSet">-->
+        <!--                Input port description.-->
+        <!--            </port>-->
+        <!--        </inputPorts>-->
+        <!--        <outputPorts>-->
+        <!--            <port name="output" type="com.rapidminer.example.ExampleSet">-->
+        <!--                Output port description.-->
+        <!--            </port>-->
+        <!--        </outputPorts>-->
+
+        <!--        &lt;!&ndash; description of the parameters and the corresponding values &ndash;&gt;-->
+        <!--        <parameters>-->
+        <!--            <parameter key="first_parameter" type="configurable">-->
+        <!--                Description here-->
+        <!--            </parameter>-->
+        <!--            <parameter key="second_parameter" type="selection">-->
+        <!--                Description here-->
+        <!--            </parameter>-->
+        <!--            <parameter key="third_parameter" type="">-->
+        <!--                Description here-->
+        <!--            </parameter>-->
+        <!--        </parameters>-->
+
+        <!--        <tutorialProcesses>-->
+        <!--            <tutorialProcess key="process.python.clustering" title="Clustering using Python">-->
+        <!--                <description>-->
+        <!--                    <paragraph>-->
+        <!--                        Tutorial description here.-->
+        <!--                    </paragraph>-->
+        <!--                </description>-->
+        <!--                <process version="6.4.000">-->
+        <!--                    <context>-->
+        <!--                        <input/>-->
+        <!--                        <output/>-->
+        <!--                        <macros/>-->
+        <!--                    </context>-->
+        <!--                    <operator activated="true" class="process" compatibility="6.4.000" expanded="true" name="Process">-->
+        <!--                        <process expanded="true">-->
+        <!--                            <operator activated="true" class="retrieve" compatibility="6.4.000" expanded="true" height="60" name="Retrieve Iris" width="90" x="380" y="210">-->
+        <!--                                <parameter key="repository_entry" value="//Samples/data/Iris"/>-->
+        <!--                            </operator>-->
+        <!--                            <connect from_op="Retrieve Iris" from_port="output" to_port="result 1"/>-->
+        <!--                            <portSpacing port="source_input 1" spacing="0"/>-->
+        <!--                            <portSpacing port="sink_result 1" spacing="0"/>-->
+        <!--                            <portSpacing port="sink_result 2" spacing="0"/>-->
+        <!--                        </process>-->
+        <!--                    </operator>-->
+        <!--                </process>-->
+        <!--            </tutorialProcess>-->
+        <!--        </tutorialProcesses>-->
 
         <relatedDocuments>
             <!-- ... -->

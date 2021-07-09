@@ -104,7 +104,7 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator implements Ca
 	 *
 	 **/
 	public static final String PARAMETER_RUN = "iterations";
-	public static final String PARAMETER_RUN_DESCRIPTION = "Numer of iterations for computing the MCD. 100-500 might be a good choice.";
+	public static final String PARAMETER_RUN_DESCRIPTION = "Number of iterations for computing the MCD. 100-500 might be a good choice.";
 
 	/**
 	 * The parameter name for &quot;Specifies the number of threads for execution.&quot; Specifies that evaluation
@@ -175,7 +175,7 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator implements Ca
 		CapabilityCheck check = new CapabilityCheck(this, Tools.booleanValue(
 				ParameterService.getParameterValue(CapabilityProvider.PROPERTY_RAPIDMINER_GENERAL_CAPABILITIES_WARN), true));
 		check.checkLearnerCapabilities(this, exampleSet);
-		
+
 		AnomalyDetectionModel model;
 		String usedAlgorithm = getParameterAsString(PARAMETER_ALGORITHM);
 		DistanceMeasure measure = measureHelper.getInitializedMeasure(exampleSet);
@@ -264,7 +264,7 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator implements Ca
 		ParameterType algorithm = new ParameterTypeCategory(PARAMETER_ALGORITHM, "which algorithm to choose", AVAILABLE_ALGORITHMS, 0, false);
 		types.add(algorithm);
 
-		List<ParameterType> distancetypes = DistanceMeasures.getParameterTypesForNumericals(this);
+		List<ParameterType> distancetypes = DistanceMeasures.getParameterTypes(this);
 		types.addAll(distancetypes);
 
 		EqualStringCondition isCBLOForLDCOF = new EqualStringCondition(this, PARAMETER_ALGORITHM, true, CBLOF, LDCOF);
