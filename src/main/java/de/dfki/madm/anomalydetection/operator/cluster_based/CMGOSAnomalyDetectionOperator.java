@@ -45,6 +45,7 @@ import de.dfki.madm.anomalydetection.evaluator.cluster_based.CMGOSEvaluator;
  * @author Patrick Kalka
  * @author Markus Goldstein
  */
+@Deprecated
 public class CMGOSAnomalyDetectionOperator extends AbstractClusteringAnomalyDetectionOperator {
 
 	

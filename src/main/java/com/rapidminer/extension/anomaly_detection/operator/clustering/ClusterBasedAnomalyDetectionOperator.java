@@ -9,11 +9,13 @@ import com.rapidminer.extension.anomaly_detection.model.AnomalyDetectionModel;
 import com.rapidminer.extension.anomaly_detection.model.clustering.CBLOFModel;
 import com.rapidminer.extension.anomaly_detection.model.clustering.CMGOSModel;
 import com.rapidminer.extension.anomaly_detection.model.clustering.LDCOFModel;
-import com.rapidminer.extension.anomaly_detection.utility.ExtendableEqualStringCondition;
 import com.rapidminer.operator.Operator;
+import com.rapidminer.operator.OperatorCapability;
 import com.rapidminer.operator.OperatorDescription;
 import com.rapidminer.operator.OperatorException;
 import com.rapidminer.operator.clustering.ClusterModel;
+import com.rapidminer.operator.learner.CapabilityCheck;
+import com.rapidminer.operator.learner.CapabilityProvider;
 import com.rapidminer.operator.ports.InputPort;
 import com.rapidminer.operator.ports.OutputPort;
 import com.rapidminer.operator.ports.metadata.AttributeMetaData;
@@ -27,12 +29,16 @@ import com.rapidminer.parameter.conditions.BooleanParameterCondition;
 import com.rapidminer.parameter.conditions.EqualStringCondition;
 import com.rapidminer.parameter.conditions.EqualTypeCondition;
 import com.rapidminer.tools.Ontology;
+import com.rapidminer.tools.ParameterService;
 import com.rapidminer.tools.RandomGenerator;
+import com.rapidminer.tools.Tools;
+import com.rapidminer.tools.math.similarity.DistanceMeasure;
+import com.rapidminer.tools.math.similarity.DistanceMeasureHelper;
 import com.rapidminer.tools.math.similarity.DistanceMeasures;
 import com.rapidminer.tools.math.similarity.numerical.EuclideanDistance;
 
 
-public class ClusterBasedAnomalyDetectionOperator extends Operator {
+public class ClusterBasedAnomalyDetectionOperator extends Operator implements CapabilityProvider {
 
 	public static final String PARAMETER_ALGORITHM = "algorithm";
 	private final static String CBLOF = "CBLOF";
@@ -48,12 +54,20 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator {
 	///The Parameter name for &quot; Uses the cluster size as a weight factor as proposed by the original publication.
 	public static String PARAMETER_WEIGHTING = "use cluster size as weighting factor";
 
+	public static String PARAMETER_LIKE_CBLOF = "divide clusters like cblof";
 
 	/**
-	 * 	// --- CMGOS Specific Parameters --- ///
+	 * Parameter name for gamma &quot; ratio between the maximum size of small clusters and the average cluster size
+	 * &quot. Small clusters are removed.;
+	 **/
+	public static String PARAMETER_GAMMA_LDCOF = "gamma_(ldcof)";
+
+
+	/**
+	 * // --- CMGOS Specific Parameters --- ///
 	 **/
 
-	public static final String[] COV = new String[] {
+	public static final String[] COV = new String[]{
 			"Reduction",
 			"Regularisation",
 			"MCD"
@@ -93,15 +107,13 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator {
 	public static final String PARAMETER_RUN_DESCRIPTION = "Numer of iterations for computing the MCD. 100-500 might be a good choice.";
 
 	/**
-	 * The parameter name for &quot;Specifies the number of threads for
-	 * execution.&quot; Specifies that evaluation process should be performed in
-	 * parallel &quot;
+	 * The parameter name for &quot;Specifies the number of threads for execution.&quot; Specifies that evaluation
+	 * process should be performed in parallel &quot;
 	 **/
 	public static final String PARAMETER_NUMBER_OF_THREADS = "number of threads";
 	public static final String PARAMETER_NUMBER_OF_THREADS_DESCRIPTION = "The number of threads for the computation";
 	/**
-	 * The number of times outlier should be removed for minimum covariance
-	 * determinant
+	 * The number of times outlier should be removed for minimum covariance determinant
 	 */
 	public static final String PARAMETER_NUMBER_OF_REMOVE = "times to remove outlier";
 	public static final String PARAMETER_NUMBER_OF_REMOVE_DESCRIPTION = "The number of times outlier should be removed for minimum covariance determinant";
@@ -126,11 +138,10 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator {
 	public static final String PARAMETER_PARALLELIZE_EVALUATION_PROCESS = "parallelize evaluation process";
 	public static final String PARAMETER_PARALLELIZE_EVALUATION_PROCESS_DESCRIPTION = "Specifies that evaluation process should be performed in parallel";
 	/**
-	 * Parameter name for gamma &quot; ratio between the maximum size of small
-	 * clusters and the average cluster size &quot. Small clusters are removed.;
+	 * Parameter name for gamma &quot; ratio between the maximum size of small clusters and the average cluster size
+	 * &quot. Small clusters are removed.;
 	 **/
 	public static String PARAMETER_GAMMA = "gamma";
-
 
 
 	protected InputPort exaInput = getInputPorts().createPort("exa", ExampleSet.class);
@@ -139,33 +150,47 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator {
 	protected OutputPort modOutput = getOutputPorts().createPort("mod");
 	protected OutputPort clusterThroughput = getOutputPorts().createPort("clu");
 
+	private DistanceMeasureHelper measureHelper = new DistanceMeasureHelper(
+			this);
+
+
 	public ClusterBasedAnomalyDetectionOperator(OperatorDescription description) {
 		super(description);
 		getTransformer().addGenerationRule(modOutput, AnomalyDetectionModel.class);
-		getTransformer().addPassThroughRule(clusterInput,clusterThroughput);
+		getTransformer().addPassThroughRule(clusterInput, clusterThroughput);
 		getTransformer().addRule(() -> {
 			ExampleSetMetaData emd = (ExampleSetMetaData) exaInput.getMetaData();
-			emd.addAttribute(new AttributeMetaData(Attributes.OUTLIER_NAME, Ontology.REAL, Attributes.OUTLIER_NAME));
-			exaOutput.deliverMD(emd);
+			if (emd != null) {
+				emd.addAttribute(new AttributeMetaData(Attributes.OUTLIER_NAME, Ontology.REAL, Attributes.OUTLIER_NAME));
+				exaOutput.deliverMD(emd);
+			} else {
+				exaOutput.deliverMD(new ExampleSetMetaData());
+			}
 		});
 	}
 
 	public void doWork() throws OperatorException {
 		ExampleSet exampleSet = exaInput.getData(ExampleSet.class);
+
+		CapabilityCheck check = new CapabilityCheck(this, Tools.booleanValue(
+				ParameterService.getParameterValue(CapabilityProvider.PROPERTY_RAPIDMINER_GENERAL_CAPABILITIES_WARN), true));
+		check.checkLearnerCapabilities(this, exampleSet);
+		
 		AnomalyDetectionModel model;
 		String usedAlgorithm = getParameterAsString(PARAMETER_ALGORITHM);
-		switch(usedAlgorithm){
+		DistanceMeasure measure = measureHelper.getInitializedMeasure(exampleSet);
+		switch (usedAlgorithm) {
 			case CBLOF:
-				model = buildCBLOF(exampleSet);
+				model = buildCBLOF(exampleSet, measure);
 				break;
 			case LDCOF:
-				model = buildLDCOF(exampleSet);
+				model = buildLDCOF(exampleSet, measure);
 				break;
 			case CMGOS:
-				model = buildCMGOS(exampleSet);
+				model = buildCMGOS(exampleSet, measure);
 				break;
 			default:
-				throw new OperatorException("Unknown algorithm "+usedAlgorithm);
+				throw new OperatorException("Unknown algorithm " + usedAlgorithm);
 		}
 
 		ExampleSet resultSet = model.apply(exampleSet);
@@ -176,35 +201,45 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator {
 
 	}
 
-	protected AnomalyDetectionModel buildCBLOF(ExampleSet trainingSet) throws OperatorException {
+	protected AnomalyDetectionModel buildCBLOF(ExampleSet trainingSet, DistanceMeasure measure) throws OperatorException {
 		ClusterModel mod = clusterInput.getData(ClusterModel.class);
-		CBLOFModel anomalyModel = new CBLOFModel(trainingSet, mod, new EuclideanDistance());
+		CBLOFModel anomalyModel = new CBLOFModel(trainingSet, mod, measure);
 		anomalyModel.setAlpha(getParameterAsDouble(PARAMETER_ALPHA));
 		anomalyModel.setBeta(getParameterAsDouble(PARAMETER_BETA));
 		anomalyModel.setUseClusterWeights(getParameterAsBoolean(PARAMETER_WEIGHTING));
 		return anomalyModel;
 	}
 
-	protected AnomalyDetectionModel buildLDCOF(ExampleSet trainingSet) throws OperatorException {
+	protected AnomalyDetectionModel buildLDCOF(ExampleSet trainingSet, DistanceMeasure measure) throws OperatorException {
 		ClusterModel mod = clusterInput.getData(ClusterModel.class);
-		LDCOFModel anomalyModel = new LDCOFModel(trainingSet, mod, new EuclideanDistance());
-		anomalyModel.setAlpha(getParameterAsDouble(PARAMETER_ALPHA));
-		anomalyModel.setBeta(getParameterAsDouble(PARAMETER_BETA));
+
+		LDCOFModel anomalyModel;
+		if (getParameterAsBoolean(PARAMETER_LIKE_CBLOF)) {
+			anomalyModel = new LDCOFModel(trainingSet, mod, measure);
+			anomalyModel.setUseGamma(true);
+			anomalyModel.setGamma(getParameterAsDouble(PARAMETER_GAMMA_LDCOF));
+		} else {
+			anomalyModel = new LDCOFModel(trainingSet, mod, new EuclideanDistance());
+			anomalyModel.setAlpha(getParameterAsDouble(PARAMETER_ALPHA));
+			anomalyModel.setBeta(getParameterAsDouble(PARAMETER_BETA));
+		}
 		return anomalyModel;
 	}
 
-	protected AnomalyDetectionModel buildCMGOS(ExampleSet trainingSet) throws OperatorException {
+	protected AnomalyDetectionModel buildCMGOS(ExampleSet trainingSet, DistanceMeasure measure) throws OperatorException {
 		ClusterModel mod = clusterInput.getData(ClusterModel.class);
-		CMGOSModel anomalyModel = new CMGOSModel(trainingSet, mod, new EuclideanDistance());
+		CMGOSModel anomalyModel = new CMGOSModel(trainingSet, mod, measure);
 		anomalyModel.setThreads(1);
 		anomalyModel.setRemoveRuns(getParameterAsInt(PARAMETER_NUMBER_OF_REMOVE));
 		anomalyModel.setProbability(getParameterAsDouble(PARAMETER_OUTLIER_PROBABILITY));
 
 		int variancePoints = -1;
-		if (getParameterAsBoolean(PARAMETER_LIMIT_COVARIANCE_POINTS))
+		if (getParameterAsBoolean(PARAMETER_LIMIT_COVARIANCE_POINTS)) {
 			variancePoints = getParameterAsInt(PARAMETER_NUMBER_COVARIANCE_POINTS);
-		if (getParameterAsBoolean(PARAMETER_LIMIT_COVARIANCE_POINTS+"_"))
-			variancePoints = getParameterAsInt(PARAMETER_NUMBER_COVARIANCE_POINTS+"_");
+		}
+		if (getParameterAsBoolean(PARAMETER_LIMIT_COVARIANCE_POINTS + "_")) {
+			variancePoints = getParameterAsInt(PARAMETER_NUMBER_COVARIANCE_POINTS + "_");
+		}
 		anomalyModel.setCov_sampling(variancePoints);
 
 		anomalyModel.setPercentage(getParameterAsDouble(PARAMETER_GAMMA));
@@ -224,9 +259,15 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator {
 	@Override
 	public List<ParameterType> getParameterTypes() {
 		List<ParameterType> types = super.getParameterTypes();
+
+
 		ParameterType algorithm = new ParameterTypeCategory(PARAMETER_ALGORITHM, "which algorithm to choose", AVAILABLE_ALGORITHMS, 0, false);
 		types.add(algorithm);
-		EqualStringCondition isCBLOForLDCOF = new EqualStringCondition(this,PARAMETER_ALGORITHM,true,CBLOF,LDCOF);
+
+		List<ParameterType> distancetypes = DistanceMeasures.getParameterTypesForNumericals(this);
+		types.addAll(distancetypes);
+
+		EqualStringCondition isCBLOForLDCOF = new EqualStringCondition(this, PARAMETER_ALGORITHM, true, CBLOF, LDCOF);
 		// CBLOF specific
 		ParameterType alpha = new ParameterTypeDouble(PARAMETER_ALPHA, "This parameter specifies the percentage of the data set that is expected to be normal",
 				0, 100, 90, false);
@@ -242,15 +283,30 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator {
 				PARAMETER_WEIGHTING,
 				"Uses the cluster size as a weight factor as proposed by the original publication.",
 				true);
-		weights.registerDependencyCondition(new EqualStringCondition(this,PARAMETER_ALGORITHM,true,CBLOF));
+		weights.registerDependencyCondition(new EqualStringCondition(this, PARAMETER_ALGORITHM, true, CBLOF));
+
+		types
+				.add(new ParameterTypeBoolean(
+						PARAMETER_LIKE_CBLOF,
+						"The division into large and small clusters will be implemented in a manner similar to CBLOF.",
+						false, false));
+
+		ParameterType gamma = new ParameterTypeDouble(
+				PARAMETER_GAMMA_LDCOF,
+				"ratio between the maximum size of small clusters and the average cluster size",
+				0, 1, 0.1);
+		// TODO: Make alpha and beta disappear, if this condition is fullfilled AND its LDCOF
+		gamma.registerDependencyCondition(new BooleanParameterCondition(this, PARAMETER_LIKE_CBLOF, true, false));
 
 		types.add(alpha);
 		types.add(beta);
+		types.add(gamma);
 		types.add(weights);
 
+
 		List<ParameterType> CMGOSParameters = getCMGOSParameters();
-		for(ParameterType p : CMGOSParameters){
-			p.registerDependencyCondition(new EqualStringCondition(this, PARAMETER_ALGORITHM,true,CMGOS));
+		for (ParameterType p : CMGOSParameters) {
+			p.registerDependencyCondition(new EqualStringCondition(this, PARAMETER_ALGORITHM, true, CMGOS));
 		}
 		types.addAll(CMGOSParameters);
 
@@ -258,11 +314,11 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator {
 		return types;
 	}
 
-	private List<ParameterType> getCMGOSParameters(){
+	private List<ParameterType> getCMGOSParameters() {
 		List<ParameterType> types = new LinkedList<ParameterType>();
 
 		types.add(new ParameterTypeDouble(PARAMETER_OUTLIER_PROBABILITY, PARAMETER_OUTLIER_PROBABILITY_DESCRIPTION, 0, 1.0, 0.975, false));
-		types.add(new ParameterTypeDouble(PARAMETER_GAMMA,"Ratio between the maximum size of small clusters and the average cluster size. Small" +
+		types.add(new ParameterTypeDouble(PARAMETER_GAMMA, "Ratio between the maximum size of small clusters and the average cluster size. Small" +
 				"clusters are removed.",
 				0, 1, 0.1));
 
@@ -279,11 +335,11 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator {
 		ParameterTypeInt type = (new ParameterTypeInt(PARAMETER_NUMBER_COVARIANCE_POINTS, PARAMETER_NUMBER_COVARIANCE_POINTS_DESCRIPTION, 1, Integer.MAX_VALUE, 1000, false));
 		type.registerDependencyCondition(new BooleanParameterCondition(this, PARAMETER_LIMIT_COVARIANCE_POINTS, true, true));
 		types.add(type);
-		type3 = (new ParameterTypeBoolean(PARAMETER_LIMIT_COVARIANCE_POINTS+"_", PARAMETER_LIMIT_COVARIANCE_POINTS_DESCRIPTION, false, false));
+		type3 = (new ParameterTypeBoolean(PARAMETER_LIMIT_COVARIANCE_POINTS + "_", PARAMETER_LIMIT_COVARIANCE_POINTS_DESCRIPTION, false, false));
 		type3.registerDependencyCondition(new EqualTypeCondition(getParameterHandler(), PARAMETER_COVARIANCE, COV, false, 0));
 		types.add(type3);
-		type = (new ParameterTypeInt(PARAMETER_NUMBER_COVARIANCE_POINTS+"_", PARAMETER_NUMBER_COVARIANCE_POINTS_DESCRIPTION, 1, Integer.MAX_VALUE, 1000, false));
-		type.registerDependencyCondition(new BooleanParameterCondition(this, PARAMETER_LIMIT_COVARIANCE_POINTS+"_", true, true));
+		type = (new ParameterTypeInt(PARAMETER_NUMBER_COVARIANCE_POINTS + "_", PARAMETER_NUMBER_COVARIANCE_POINTS_DESCRIPTION, 1, Integer.MAX_VALUE, 1000, false));
+		type.registerDependencyCondition(new BooleanParameterCondition(this, PARAMETER_LIMIT_COVARIANCE_POINTS + "_", true, true));
 		types.add(type);
 		type = (new ParameterTypeInt(PARAMETER_H, PARAMETER_H_DESCRIPTION, 0, Integer.MAX_VALUE, -1, false));
 		type.registerDependencyCondition(new EqualTypeCondition(getParameterHandler(), PARAMETER_COVARIANCE, COV, false, METHOD_COV_MCD));
@@ -302,8 +358,8 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator {
 		type1.registerDependencyCondition(new EqualTypeCondition(getParameterHandler(), PARAMETER_COVARIANCE, COV, false, METHOD_COV_REGULARIZE));
 		types.add(type1);
 
-		List<ParameterType> distancetypes = DistanceMeasures.getParameterTypes(this);
-		types.addAll(distancetypes);
+//		List<ParameterType> distancetypes = DistanceMeasures.getParameterTypes(this);
+//		types.addAll(distancetypes);
 
 		types.add(new ParameterTypeBoolean(PARAMETER_PARALLELIZE_EVALUATION_PROCESS, PARAMETER_PARALLELIZE_EVALUATION_PROCESS_DESCRIPTION, false, false));
 		type = (new ParameterTypeInt(PARAMETER_NUMBER_OF_THREADS, PARAMETER_NUMBER_OF_THREADS_DESCRIPTION, 1, Integer.MAX_VALUE, Runtime.getRuntime().availableProcessors(), false));
@@ -315,4 +371,18 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator {
 	}
 
 
+	@Override
+	public boolean supportsCapability(OperatorCapability capability) {
+		switch (capability) {
+			case NUMERICAL_LABEL:
+			case NUMERICAL_ATTRIBUTES:
+			case ONE_CLASS_LABEL:
+			case NO_LABEL:
+			case POLYNOMINAL_LABEL:
+			case BINOMINAL_LABEL:
+				return true;
+			default:
+				return false;
+		}
+	}
 }

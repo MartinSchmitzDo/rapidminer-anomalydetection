@@ -40,6 +40,7 @@ import de.dfki.madm.anomalydetection.evaluator.cluster_based.LDCOFEvaluator;
  * @author Mennatallah Amer
  * 
  */
+@Deprecated
 public class LDCOFAnomalyDetectionOperator extends
 		AbstractClusteringAnomalyDetectionOperator {
 	/** The parameter name for &quot; The division into large and small clusters will be implemented in a manner similar to CBLOF. &quot;**/

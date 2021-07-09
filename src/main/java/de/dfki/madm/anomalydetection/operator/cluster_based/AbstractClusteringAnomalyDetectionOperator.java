@@ -54,7 +54,7 @@ import de.dfki.madm.anomalydetection.operator.AbstractAnomalyDetectionOperator;
  * @author Mennatallah Amer
  * 
  */
-
+@Deprecated
 public abstract class AbstractClusteringAnomalyDetectionOperator extends
 		AbstractAnomalyDetectionOperator {
 	/** The cluster model input port. **/
