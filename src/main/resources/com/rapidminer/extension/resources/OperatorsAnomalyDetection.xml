@@ -2,9 +2,15 @@
 <operators name="anomaly_detection" version="6.0"
            docbundle="com/rapidminer/extension/resources/i18n/OperatorsDocAnomalyDetection">
     <group key="">
+        <icon>magnifying_glass.png</icon>
+        <operator>
+            <key>cluster_based_anomaly</key>
+            <class>com.rapidminer.extension.anomaly_detection.operator.clustering.ClusterBasedAnomalyDetectionOperator
+            </class>
+        </operator>
+
         <group key="anomaly_detection">
             <icon>table_new.png</icon>
-
             <group key="nearest_neighbor_based">
                 <operator>
                     <key>k-NN Global Anomaly Score</key>
@@ -66,6 +72,8 @@
                     <class>de.dfki.madm.anomalydetection.operator.cluster_based.CMGOSAnomalyDetectionOperator
                     </class>
                 </operator>
+
+
             </group>
 
             <group key="statistical_based">

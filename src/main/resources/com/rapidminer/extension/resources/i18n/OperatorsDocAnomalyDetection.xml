@@ -15,5 +15,8 @@
       <name>Example Group</name>
     </group>
     -->
-
+    <operator>
+        <key>cluster_based_anomaly</key>
+        <name>Detect Outlier (Clustering)</name>
+    </operator>
 </operatorHelp>

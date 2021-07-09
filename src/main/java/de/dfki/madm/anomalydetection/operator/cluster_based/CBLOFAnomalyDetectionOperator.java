@@ -53,6 +53,7 @@ import de.dfki.madm.anomalydetection.evaluator.cluster_based.CBLOFEvaluator;
  * @author Mennatallah Amer
  * 
  */
+@Deprecated
 public class CBLOFAnomalyDetectionOperator extends
 		AbstractClusteringAnomalyDetectionOperator {
 
