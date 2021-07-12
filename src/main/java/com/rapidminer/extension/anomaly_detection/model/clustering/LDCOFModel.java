@@ -23,7 +23,8 @@ public class LDCOFModel extends ClusterBasedAnomalyDetectionModel {
 
 	@Override
 	public double[] evaluate(ExampleSet testSet) throws OperatorException {
-		double[][] points = AnomalyUtilities.exampleSetToDoubleArray(testSet, testSet.getAttributes(), true);
+
+		double[][] points = AnomalyUtilities.exampleSetToDoubleArray(testSet, getTrainingHeader().getAttributes(), true);
 		LDCOFEvaluator evaluator;
 		if(useGamma)
 			evaluator = new LDCOFEvaluator(gamma, distanceMeasure, points, getClusterIds(testSet), centroids, clusterSize);

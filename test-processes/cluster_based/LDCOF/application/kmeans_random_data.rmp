@@ -67,22 +67,6 @@
       <operator activated="true" class="multiply" compatibility="9.8.001" expanded="true" height="103" name="Multiply (2)" width="90" x="447" y="136"/>
       <operator activated="true" class="anomaly_detection:cluster_based_anomaly" compatibility="3.0.000" expanded="true" height="103" name="cluster_based_anomaly" width="90" x="581" y="34">
         <parameter key="algorithm" value="CMGOS"/>
-        <parameter key="alpha" value="90.0"/>
-        <parameter key="beta" value="5.0"/>
-        <parameter key="use cluster size as weighting factor" value="true"/>
-        <parameter key="probability for normal class" value="0.975"/>
-        <parameter key="gamma" value="0.1"/>
-        <parameter key="covariance estimation" value="Reduction"/>
-        <parameter key="times to remove outlier" value="1"/>
-        <parameter key="limit computations" value="false"/>
-        <parameter key="maximum" value="1000"/>
-        <parameter key="limit computations_" value="false"/>
-        <parameter key="maximum_" value="1000"/>
-        <parameter key="h (non-outlier instances)" value="-1"/>
-        <parameter key="iterations" value="500"/>
-        <parameter key="threshold for fastMCD" value="600"/>
-        <parameter key="number of subsets" value="5"/>
-        <parameter key="lambda" value="0.1"/>
         <parameter key="measure_types" value="MixedMeasures"/>
         <parameter key="mixed_measure" value="MixedEuclideanDistance"/>
         <parameter key="nominal_measure" value="NominalDistance"/>
@@ -97,6 +81,24 @@
         <parameter key="kernel_shift" value="1.0"/>
         <parameter key="kernel_a" value="1.0"/>
         <parameter key="kernel_b" value="0.0"/>
+        <parameter key="divide clusters like cblof" value="false"/>
+        <parameter key="alpha" value="90.0"/>
+        <parameter key="beta" value="5.0"/>
+        <parameter key="gamma_(ldcof)" value="0.1"/>
+        <parameter key="use cluster size as weighting factor" value="true"/>
+        <parameter key="probability for normal class" value="0.975"/>
+        <parameter key="gamma" value="0.1"/>
+        <parameter key="covariance estimation" value="Reduction"/>
+        <parameter key="times to remove outlier" value="1"/>
+        <parameter key="limit computations" value="false"/>
+        <parameter key="maximum" value="1000"/>
+        <parameter key="limit computations_" value="false"/>
+        <parameter key="maximum_" value="1000"/>
+        <parameter key="h (non-outlier instances)" value="-1"/>
+        <parameter key="iterations" value="500"/>
+        <parameter key="threshold for fastMCD" value="600"/>
+        <parameter key="number of subsets" value="5"/>
+        <parameter key="lambda" value="0.1"/>
         <parameter key="parallelize evaluation process" value="false"/>
         <parameter key="number of threads" value="8"/>
         <parameter key="use_local_random_seed" value="false"/>
@@ -110,7 +112,7 @@
         <list key="application_parameters"/>
         <parameter key="create_view" value="false"/>
       </operator>
-      <operator activated="true" class="apply_model" compatibility="9.8.001" expanded="true" height="82" name="Apply Model (2)" width="90" x="849" y="238">
+      <operator activated="true" class="apply_model" compatibility="9.8.001" expanded="true" height="82" name="Apply Model (2)" width="90" x="849" y="289">
         <list key="application_parameters"/>
         <parameter key="create_view" value="false"/>
       </operator>

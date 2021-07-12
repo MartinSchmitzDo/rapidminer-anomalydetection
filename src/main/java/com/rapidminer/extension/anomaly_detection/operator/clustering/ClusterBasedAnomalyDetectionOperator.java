@@ -285,11 +285,13 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator implements Ca
 				true);
 		weights.registerDependencyCondition(new EqualStringCondition(this, PARAMETER_ALGORITHM, true, CBLOF));
 
-		types
-				.add(new ParameterTypeBoolean(
-						PARAMETER_LIKE_CBLOF,
-						"The division into large and small clusters will be implemented in a manner similar to CBLOF.",
-						false, false));
+		ParameterType likeCBLOF = new ParameterTypeBoolean(
+				PARAMETER_LIKE_CBLOF,
+				"The division into large and small clusters will be implemented in a manner similar to CBLOF.",
+				false, false);
+		EqualStringCondition isLDCOF = new EqualStringCondition(this,PARAMETER_ALGORITHM,true,LDCOF);
+		likeCBLOF.registerDependencyCondition(isLDCOF);
+		types.add(likeCBLOF);
 
 		ParameterType gamma = new ParameterTypeDouble(
 				PARAMETER_GAMMA_LDCOF,
@@ -297,7 +299,7 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator implements Ca
 				0, 1, 0.1);
 		// TODO: Make alpha and beta disappear, if this condition is fullfilled AND its LDCOF
 		gamma.registerDependencyCondition(new BooleanParameterCondition(this, PARAMETER_LIKE_CBLOF, true, false));
-
+		gamma.registerDependencyCondition(isLDCOF);
 		types.add(alpha);
 		types.add(beta);
 		types.add(gamma);

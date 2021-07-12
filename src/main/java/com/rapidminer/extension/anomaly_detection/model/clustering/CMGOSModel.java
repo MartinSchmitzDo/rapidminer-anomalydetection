@@ -38,7 +38,7 @@ public class CMGOSModel extends ClusterBasedAnomalyDetectionModel {
 		// CMGOS uses clusterSize[] not just for normalization, so we need to recalculate it
 		// on the test set.
 		int[] belongsToCluster = getClusterIds(testSet);
-		double[][] points = AnomalyUtilities.exampleSetToDoubleArray(testSet, testSet.getAttributes(), true);
+		double[][] points = AnomalyUtilities.exampleSetToDoubleArray(testSet, getTrainingHeader().getAttributes(), true);
 		if (!trained) {
 			clusterSize = getClusterSize(testSet);
 			evaluator = new NewCMGOSEvaluator(
