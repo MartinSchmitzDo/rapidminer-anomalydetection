@@ -25,26 +25,25 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+
 import org.apache.commons.math.MathException;
 import org.apache.commons.math.distribution.ChiSquaredDistributionImpl;
-
-import Jama.Matrix;
 
 import com.rapidminer.operator.OperatorException;
 import com.rapidminer.tools.RandomGenerator;
 import com.rapidminer.tools.math.similarity.DistanceMeasure;
 
+import Jama.Matrix;
 import de.dfki.madm.anomalydetection.evaluator.Evaluator;
 
+
 /**
- * The evaluator of CMGOS. This is where the algorithm
- * logic is implemented.
+ * The evaluator of CMGOS. This is where the algorithm logic is implemented.
  *
  * @author Patrick Kalka
  * @author Markus Goldstein
- *
  */
-public class CMGOSEvaluator implements Evaluator {
+public class NewCMGOSEvaluator implements Evaluator {
 
 	public static final int METHOD_COV_REDUCTION = 0;
 	public static final int METHOD_COV_REGULARIZE = 1;
@@ -83,15 +82,13 @@ public class CMGOSEvaluator implements Evaluator {
 	 */
 	private double probability;
 	/**
-	 * Number of points for covariance matrix calculation
-	 * (faster computation by sampling)
+	 * Number of points for covariance matrix calculation (faster computation by sampling)
 	 */
 	private int cov_sampling;
 
 	private RandomGenerator generator;
 	/**
 	 * Percentage determining if a cluster is large or small.
-	 *
 	 */
 	private double percentage;
 	/**
@@ -109,39 +106,36 @@ public class CMGOSEvaluator implements Evaluator {
 	private int numberOfSubsets;
 	private int fastMCDPoints;
 	private int initIteration;
-	CovarianceMatrix[] CovariancematrixPerCluster;
+	private CovarianceMatrix[] CovariancematrixPerCluster;
+	private double[] DistanceLimitPerCluster;
+	private Matrix[] mhInverse;
+	double DistanceLimit;
+	int[][] remove;
+	private double[][] meansPerCluster;
+	private boolean removed_cluster[];
+	double limit;
+
 
 	/**
 	 * Instantiates a new covariance matrix evaluator.
 	 *
-	 * @param measure
-	 *            the distancemeasure
-	 * @param points
-	 *            all datapoints
-	 * @param belongsToCluster
-	 *            point-cluster-association
-	 * @param centroids
-	 *            the centroids
-	 * @param clusterSize
-	 *            the cluster size
-	 * @param threads
-	 *            number of threads
-	 * @param removeRuns
-	 *            times to remove outliers and recompute
-	 * @param probability
-	 *            The outlier probability
-	 * @param cov_sampling
-	 *            Nbr of instances to use to computer cov (sampling)
-	 * @param generator
-	 *            Number of points for covariancematrix calculation
-	 * @param minimumInstancesForCluster
-	 *            Number of points to define a &quote;small cluster&quote;
+	 * @param measure                    the distancemeasure
+	 * @param points                     all datapoints
+	 * @param belongsToCluster           point-cluster-association
+	 * @param centroids                  the centroids
+	 * @param clusterSize                the cluster size
+	 * @param threads                    number of threads
+	 * @param removeRuns                 times to remove outliers and recompute
+	 * @param probability                The outlier probability
+	 * @param cov_sampling               Nbr of instances to use to computer cov (sampling)
+	 * @param generator                  Number of points for covariancematrix calculation
+	 * @param minimumInstancesForCluster Number of points to define a &quote;small cluster&quote;
 	 * @param lamda
 	 * @param initIteration
 	 * @param fastMCDPoints
 	 * @param subsetPoints
 	 */
-	public CMGOSEvaluator(DistanceMeasure measure, double[][] points, int[] belongsToCluster, double[][] centroids, int[] clusterSize, int threads, int removeRuns, double probability, int cov_sampling, RandomGenerator generator, double percentage, double lamda, int cov, int h, int numberOfSubsets, int fastMCDPoints, int initIteration) {
+	public NewCMGOSEvaluator(DistanceMeasure measure, double[][] points, int[] belongsToCluster, double[][] centroids, int[] clusterSize, int threads, int removeRuns, double probability, int cov_sampling, RandomGenerator generator, double percentage, double lamda, int cov, int h, int numberOfSubsets, int fastMCDPoints, int initIteration) {
 
 		this.measure = measure;
 		this.points = points;
@@ -164,14 +158,12 @@ public class CMGOSEvaluator implements Evaluator {
 
 	/**
 	 * Reassigns instances to other clusters of cluster is too small
-	 * @param removed_cluster
-	 * 	Array with removed clusters
-	 * @param limit
-	 * 	Minumum limit for instances
-	 * @return
-	 * 	Array with removed clusters
+	 *
+	 * @param removed_cluster Array with removed clusters
+	 * @param limit           Minumum limit for instances
+	 * @return Array with removed clusters
 	 */
-	private boolean[] reassignPoints(boolean[] removed_cluster, double limit) {
+	private boolean[] reassignPoints(boolean[] removed_cluster, double limit, boolean isTraining) {
 		int clusterId = 0;
 		for (double size : this.clusterSize) {
 			// cluster too small according to minimum
@@ -184,8 +176,9 @@ public class CMGOSEvaluator implements Evaluator {
 						int minId = 0;
 						for (double size2 : this.clusterSize) {
 							clusterId2++;
-							if (clusterId2 == clusterId || size2 <= limit)
+							if (clusterId2 == clusterId || size2 <= limit) {
 								continue;
+							}
 							double dis = this.measure.calculateDistance(this.points[i], this.centroids[clusterId2]);
 							if (dis < minDist) {
 								minId = clusterId2;
@@ -193,12 +186,13 @@ public class CMGOSEvaluator implements Evaluator {
 							}
 						}
 						this.belongsToCluster[i] = minId;
-						this.clusterSize[minId]++;
-						this.clusterSize[clusterId]--;
+						if (!isTraining) {
+							this.clusterSize[minId]++;
+							this.clusterSize[clusterId]--;
+						}
 					}
 				}
-			}
-			else {
+			} else {
 				removed_cluster[clusterId] = false;
 			}
 			clusterId++;
@@ -208,13 +202,14 @@ public class CMGOSEvaluator implements Evaluator {
 
 	/**
 	 * Main Algorithm
+	 *
 	 * @throws OperatorException
 	 */
 	public double[] evaluate() throws OperatorException {
 		// remove small clusters
-		boolean[] removed_cluster = new boolean[this.centroids.length];
-		double limit = percentage * points.length/centroids.length;
-		removed_cluster = this.reassignPoints(removed_cluster, limit);
+		removed_cluster = new boolean[this.centroids.length];
+		limit = percentage * points.length / centroids.length;
+		removed_cluster = this.reassignPoints(removed_cluster, limit, false);
 
 
 		int TotalNumberOfPoints = points.length;
@@ -222,16 +217,15 @@ public class CMGOSEvaluator implements Evaluator {
 		int PointDimension = this.points[0].length;
 
 		// remove clusters with less points than dimensions
-		removed_cluster = this.reassignPoints(removed_cluster, PointDimension);
-		int[][] remove = new int[NumberOfCluster][PointDimension];
+		removed_cluster = this.reassignPoints(removed_cluster, PointDimension, false);
+		remove = new int[NumberOfCluster][PointDimension];
 
 		// assign distance limit -1 for error
-		double DistanceLimit = -1;
+		DistanceLimit = -1;
 		ChiSquaredDistributionImpl chi = new ChiSquaredDistributionImpl(points[0].length);
 		try {
 			DistanceLimit = chi.inverseCumulativeProbability(this.probability);
-		}
-		catch (MathException e) {
+		} catch (MathException e) {
 			System.out.println(e);
 		}
 
@@ -241,15 +235,17 @@ public class CMGOSEvaluator implements Evaluator {
 		int[] workBelongsToCluster = this.belongsToCluster.clone();
 		int[] workClusterSize = this.clusterSize.clone();
 
-		double[] DistanceLimitPerCluster = new double[NumberOfCluster];
+		DistanceLimitPerCluster = new double[NumberOfCluster];
 		Arrays.fill(DistanceLimitPerCluster, DistanceLimit);
 
 		this.CovariancematrixPerCluster = new CovarianceMatrix[NumberOfCluster];
-
+		this.mhInverse = new Matrix[NumberOfCluster];
 		// in case of fastMCD make sure don't remove any outliers and recompute
 		// sanity check from user interface
-		if (this.red == METHOD_COV_MCD) this.removeRuns = 0;
-
+		if (this.red == METHOD_COV_MCD) {
+			this.removeRuns = 0;
+		}
+		meansPerCluster = new double[NumberOfCluster][PointDimension];
 		for (int rem = 0; rem <= this.removeRuns; rem++) {
 
 			// Associate instances to a cluster
@@ -287,6 +283,9 @@ public class CMGOSEvaluator implements Evaluator {
 						}
 					}
 
+					for (int i = 0; i < erw.length; ++i) {
+						meansPerCluster[ClusterId][i] = erw[i];
+					}
 				}
 			}
 
@@ -310,8 +309,9 @@ public class CMGOSEvaluator implements Evaluator {
 					// in the case of MCD, do it
 					if (this.red == METHOD_COV_MCD) {
 						// we compute h from the normal probability
-						if (this.h == -1)
-							this.h = (int) Math.ceil(this.probability * (float)data.length);
+						if (this.h == -1) {
+							this.h = (int) Math.ceil(this.probability * (float) data.length);
+						}
 						CovariancematrixPerCluster[ClusterId] = fastMDC(data, this.h);
 					}
 					// Regularization and Reduction
@@ -335,7 +335,9 @@ public class CMGOSEvaluator implements Evaluator {
 												break;
 											}
 										}
-										if (change) break;
+										if (change) {
+											break;
+										}
 									}
 									if (change) {
 										// store which attribute to remove in which cluster
@@ -354,8 +356,7 @@ public class CMGOSEvaluator implements Evaluator {
 								chi = new ChiSquaredDistributionImpl(data[0].length);
 								try {
 									DistanceLimitPerCluster[ClusterId] = chi.inverseCumulativeProbability(this.probability);
-								}
-								catch (MathException e) {
+								} catch (MathException e) {
 									System.out.println(e);
 								}
 
@@ -406,8 +407,7 @@ public class CMGOSEvaluator implements Evaluator {
 					if (this.red == METHOD_COV_REDUCTION && mh.det() == 0) {
 						CovariancematrixPerCluster[ClusterId].addMinimum();
 						mh = new Matrix(CovariancematrixPerCluster[ClusterId].getCovMat());
-					}
-					else if (this.red == METHOD_COV_REGULARIZE) {
+					} else if (this.red == METHOD_COV_REGULARIZE) {
 						Matrix mS = new Matrix(S);
 						mS = mS.times(this.regularizedLambda / this.points.length);
 						mh = mh.times((1.0 - this.regularizedLambda));
@@ -420,46 +420,86 @@ public class CMGOSEvaluator implements Evaluator {
 					}
 
 					mh = mh.inverse();
+					mhInverse[ClusterId] = mh;
+					score(this.points, result, workBelongsToCluster, ClusterId);
 
-					for (int PointId = 0; PointId < points.length; PointId++) {
-						if (workBelongsToCluster[PointId] == ClusterId) {
-
-							int sum = 0;
-							for (int i : remove[ClusterId])
-								sum += i;
-
-							double[] point = new double[points[PointId].length - sum];
-
-							int count = 0;
-							for (int ind = 0; ind < remove[ClusterId].length; ind++) {
-								if (remove[ClusterId][ind] == 1)
-									count++;
-								int newid = ind - count;
-								if (newid < 0)
-									continue;
-								point[newid] = this.points[PointId][newid];
-							}
-
-							double mahaDist;
-							if (this.red == 0)
-								mahaDist = mahalanobisDistance(point, mh);
-							else
-								mahaDist = mahalanobisDistance(this.points[PointId], mh);
-							result[PointId] = mahaDist / DistanceLimit;
-
-							// remove association for minimum covariance
-							// determinant
-							if (rem != this.removeRuns && mahaDist > DistanceLimitPerCluster[ClusterId]) {
-								workBelongsToCluster[PointId] = NumberOfCluster;
-								workClusterSize[ClusterId]--;
-							}
-						}
-					}
 				}
 			}
 		}
 
 		return result;
+	}
+
+	public double[] score(double[][] points, int[] belongsToCluster) {
+		double[] score = new double[points.length];
+
+		this.belongsToCluster = belongsToCluster;
+		this.points = points;
+		reassignPoints(removed_cluster, limit, true);
+
+		for (int exampleIndex = 0; exampleIndex < points.length; ++exampleIndex) {
+			double[] point = points[exampleIndex];
+			for (int i = 0; i < this.meansPerCluster[0].length; ++i) {
+				int clusterId = this.belongsToCluster[exampleIndex];
+				point[i] -= this.meansPerCluster[clusterId][i];
+			}
+		}
+
+
+		for (int i = 0; i < clusterSize.length; ++i) {
+			score(points, score, belongsToCluster, i);
+		}
+		return score;
+
+	}
+
+	private void score(double[][] points, double[] result, int[] workBelongsToCluster, int ClusterId) {
+
+		if (this.mhInverse[ClusterId] != null) {
+			Matrix mh = this.mhInverse[ClusterId];
+			for (int PointId = 0; PointId < points.length; PointId++) {
+				if (workBelongsToCluster[PointId] == ClusterId) {
+
+					int sum = 0;
+					for (int i : remove[ClusterId]) {
+						sum += i;
+					}
+
+					double[] point = new double[points[PointId].length - sum];
+
+					int count = 0;
+					for (int ind = 0; ind < remove[ClusterId].length; ind++) {
+						if (remove[ClusterId][ind] == 1) {
+							count++;
+						}
+						int newid = ind - count;
+						if (newid < 0) {
+							continue;
+						}
+						point[newid] = points[PointId][newid];
+					}
+
+					double mahaDist;
+					if (this.red == 0) {
+						mahaDist = mahalanobisDistance(point, mh);
+					} else {
+						mahaDist = mahalanobisDistance(points[PointId], mh);
+					}
+					result[PointId] = mahaDist / DistanceLimit;
+					if (mahaDist > 90) {
+						mahaDist = 0;
+					}
+//
+					// remove association for minimum covariance
+					// determinant
+//				if (rem != this.removeRuns && mahaDist > DistanceLimitPerCluster[ClusterId]) {
+//					workBelongsToCluster[PointId] = NumberOfCluster;
+//					workClusterSize[ClusterId]--;
+//				}
+				}
+			}
+		}
+
 	}
 
 	private boolean hasZeroVariance(double[][] data, int[] indexArray) {
@@ -473,8 +513,9 @@ public class CMGOSEvaluator implements Evaluator {
 					break;
 				}
 			}
-			if (ret)
+			if (ret) {
 				break;
+			}
 		}
 		return ret;
 	}
@@ -543,8 +584,9 @@ public class CMGOSEvaluator implements Evaluator {
 						} while (taken[index]);
 						taken[index] = true;
 						boolean b = true;
-						for (boolean t : taken)
+						for (boolean t : taken) {
 							b &= t;
+						}
 						list.push(data[indexArray[index]]);
 						ret = new CovarianceMatrix(list, 1);
 						if (b) {
@@ -577,8 +619,7 @@ public class CMGOSEvaluator implements Evaluator {
 		for (int i = 0; i < this.numberOfThreads; i++) {
 			try {
 				wa[i].join();
-			}
-			catch (InterruptedException e) {
+			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
@@ -586,8 +627,9 @@ public class CMGOSEvaluator implements Evaluator {
 		HashMap<Double, LinkedList<CovarianceMatrix>> map = new HashMap<Double, LinkedList<CovarianceMatrix>>();
 		for (int i = 0; i < this.numberOfThreads; i++) {
 			for (Double k : wa[i].getMap().keySet()) {
-				for (CovarianceMatrix mat : wa[i].getMap().get(k))
+				for (CovarianceMatrix mat : wa[i].getMap().get(k)) {
 					map = getSorted(map, mat, 10);
+				}
 			}
 			wa[i] = null;
 		}
@@ -604,8 +646,7 @@ public class CMGOSEvaluator implements Evaluator {
 			LinkedList<CovarianceMatrix> temp = map.get(det);
 			temp.push(ret);
 			map.put(det, temp);
-		}
-		else {
+		} else {
 			LinkedList<CovarianceMatrix> temp = new LinkedList<CovarianceMatrix>();
 			temp.push(ret);
 			map.put(det, temp);
@@ -655,8 +696,9 @@ public class CMGOSEvaluator implements Evaluator {
 							LinkedList<CovarianceMatrix> l = map.get(d);
 							for (CovarianceMatrix c : l) {
 								CovarianceMatrix ret = c;
-								for (int rep = 0; rep < 2; rep++)
+								for (int rep = 0; rep < 2; rep++) {
 									ret = Cstep(ret, data, indexArray, h_sub);
+								}
 								retMap = getSorted(retMap, ret, 10);
 							}
 						}
@@ -689,14 +731,14 @@ public class CMGOSEvaluator implements Evaluator {
 			double h_sub = Math.ceil((dim * (h / (n * 1.0))));
 			HashMap<Double, LinkedList<CovarianceMatrix>> map = getInit10(data, indexArray, (int) h_sub, dim, p);
 
-			if (!map2.containsKey(merge_id))
+			if (!map2.containsKey(merge_id)) {
 				map2.put(merge_id, map);
-			else {
+			} else {
 				HashMap<Double, LinkedList<CovarianceMatrix>> hilf = map2.get(merge_id);
 				for (double k : map.keySet()) {
-					if (!hilf.containsKey(k))
+					if (!hilf.containsKey(k)) {
 						hilf.put(k, map.get(k));
-					else {
+					} else {
 						LinkedList<CovarianceMatrix> h1 = hilf.get(k);
 						h1.addAll(map.get(k));
 						hilf.put(k, h1);
@@ -713,8 +755,9 @@ public class CMGOSEvaluator implements Evaluator {
 		// 1,500);
 
 		anz_subset = Math.floor(data.length / 1500.0);
-		if (anz_subset <= 0)
+		if (anz_subset <= 0) {
 			anz_subset = 1;
+		}
 		anz_points = Math.floor(data.length / anz_subset);
 		taken = new boolean[data.length];
 		double h_sub = Math.ceil((anz_points * (h / (n * 1.0))));
@@ -739,8 +782,7 @@ public class CMGOSEvaluator implements Evaluator {
 		for (int i = 0; i < this.numberOfThreads; i++) {
 			try {
 				wa[i].join();
-			}
-			catch (InterruptedException e) {
+			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
@@ -748,8 +790,9 @@ public class CMGOSEvaluator implements Evaluator {
 		HashMap<Double, LinkedList<CovarianceMatrix>> map3 = new HashMap<Double, LinkedList<CovarianceMatrix>>();
 		for (int i = 0; i < this.numberOfThreads; i++) {
 			for (Double k : wa[i].getMap().keySet()) {
-				for (CovarianceMatrix mat : wa[i].getMap().get(k))
+				for (CovarianceMatrix mat : wa[i].getMap().get(k)) {
 					map3 = getSorted(map3, mat, 10);
+				}
 			}
 		}
 
@@ -789,8 +832,7 @@ public class CMGOSEvaluator implements Evaluator {
 			// det(S_1), we stop;
 			if (post_det >= pre_det || post_det == 0) {
 				loop = false;
-			}
-			else {
+			} else {
 				pre = post;
 				pre_mat = post_mat;
 				pre_det = post_det;
@@ -818,8 +860,7 @@ public class CMGOSEvaluator implements Evaluator {
 		// matrix. Report these and stop.
 		if (h == n) {
 			ret = new CovarianceMatrix(data, this.numberOfThreads);
-		}
-		else {
+		} else {
 			// If p = 1 (univariate data), compute the MCn esti-mate (T, S) by
 			// the exact algorithm of Rousseeuw and Leroy (1987, pp. 171-172) in
 			// O(n log n) time; then stop.
@@ -846,8 +887,7 @@ public class CMGOSEvaluator implements Evaluator {
 								LinkedList<CovarianceMatrix> hilf = map2.get(pre_det);
 								hilf.push(pre);
 								map2.put(pre_det, hilf);
-							}
-							else {
+							} else {
 								LinkedList<CovarianceMatrix> hilf = new LinkedList<CovarianceMatrix>();
 								hilf.push(pre);
 								map2.put(pre_det, hilf);
@@ -859,8 +899,7 @@ public class CMGOSEvaluator implements Evaluator {
 					sortedList.addAll(map2.keySet());
 					Collections.sort(sortedList);
 					ret = map2.get(sortedList.get(0)).getFirst();
-				}
-				else {
+				} else {
 					HashMap<Double, LinkedList<CovarianceMatrix>> map = fast(data, h, n, p);
 					ArrayList<Double> sortedList = new ArrayList<Double>();
 					sortedList.addAll(map.keySet());
@@ -892,8 +931,7 @@ public class CMGOSEvaluator implements Evaluator {
 				LinkedList<Integer> hilf = map.get(d);
 				hilf.push(index);
 				map.put(d, hilf);
-			}
-			else {
+			} else {
 				LinkedList<Integer> hilf = new LinkedList<Integer>();
 				hilf.push(index);
 				map.put(d, hilf);
@@ -912,11 +950,13 @@ public class CMGOSEvaluator implements Evaluator {
 			for (Integer i : map.get(key)) {
 				newMat[count] = data[indexArray[i]];
 				count++;
-				if (count >= h)
+				if (count >= h) {
 					break;
+				}
 			}
-			if (count >= h)
+			if (count >= h) {
 				break;
+			}
 		}
 
 		return new CovarianceMatrix(newMat, this.numberOfThreads);
@@ -925,11 +965,8 @@ public class CMGOSEvaluator implements Evaluator {
 	/**
 	 * M dist2.
 	 *
-	 * @param point
-	 *            the mu
-	 * @param centroids2
-	 * @param sig_inv
-	 *            the sig_inv
+	 * @param point   the mu
+	 * @param sig_inv the sig_inv
 	 * @return the double
 	 */
 	private double mahalanobisDistance(double[] point, Matrix sig_inv) {

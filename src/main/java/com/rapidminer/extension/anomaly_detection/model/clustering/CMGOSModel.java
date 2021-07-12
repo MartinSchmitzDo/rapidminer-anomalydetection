@@ -7,7 +7,7 @@ import com.rapidminer.operator.clustering.ClusterModel;
 import com.rapidminer.tools.RandomGenerator;
 import com.rapidminer.tools.math.similarity.DistanceMeasure;
 
-import de.dfki.madm.anomalydetection.evaluator.cluster_based.CMGOSEvaluator;
+import de.dfki.madm.anomalydetection.evaluator.cluster_based.NewCMGOSEvaluator;
 
 
 public class CMGOSModel extends ClusterBasedAnomalyDetectionModel {
@@ -25,23 +25,35 @@ public class CMGOSModel extends ClusterBasedAnomalyDetectionModel {
 	int fastMCDPoints;
 	int inititeration;
 	RandomGenerator randomGenerator = RandomGenerator.getGlobalRandomGenerator();
+	NewCMGOSEvaluator evaluator;
+	boolean trained;
 
 	public CMGOSModel(ExampleSet exampleSet, ClusterModel model, DistanceMeasure measure) throws OperatorException {
 		super(exampleSet, model, measure);
+		trained = false;
 	}
 
 	@Override
 	public double[] evaluate(ExampleSet testSet) throws OperatorException {
 		// CMGOS uses clusterSize[] not just for normalization, so we need to recalculate it
 		// on the test set.
-		clusterSize = getClusterSize(testSet);
-
+		int[] belongsToCluster = getClusterIds(testSet);
 		double[][] points = AnomalyUtilities.exampleSetToDoubleArray(testSet, testSet.getAttributes(), true);
-		CMGOSEvaluator evaluator = new CMGOSEvaluator(
-				distanceMeasure, points, getClusterIds(testSet),
-				centroids, clusterSize, threads, removeRuns,probability, cov_sampling, randomGenerator,
-				percentage,lambda, cov, h,numberOfSubsets,fastMCDPoints,inititeration);
-		return evaluator.evaluate();
+		if (!trained) {
+			clusterSize = getClusterSize(testSet);
+			evaluator = new NewCMGOSEvaluator(
+					distanceMeasure, points, belongsToCluster,
+					centroids, clusterSize, threads, removeRuns, probability, cov_sampling, randomGenerator,
+					percentage, lambda, cov, h, numberOfSubsets, fastMCDPoints, inititeration);
+			double original_score[] = evaluator.evaluate();
+			trained = true;
+			return original_score;
+		} else {
+
+			double[] score = evaluator.score(points,belongsToCluster);
+			return score;
+		}
+
 	}
 
 	public void setThreads(int threads) {
