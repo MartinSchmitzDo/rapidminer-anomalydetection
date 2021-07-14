@@ -12,7 +12,7 @@
     <parameter key="process_duration_for_mail" value="30"/>
     <parameter key="encoding" value="SYSTEM"/>
     <process expanded="true">
-      <operator activated="true" class="generate_data" compatibility="9.8.001" expanded="true" height="68" name="Generate Data" width="90" x="45" y="187">
+      <operator activated="true" class="generate_data" compatibility="9.8.001" expanded="true" height="68" name="Generate Data" width="90" x="45" y="85">
         <parameter key="target_function" value="gaussian mixture clusters"/>
         <parameter key="number_examples" value="4999"/>
         <parameter key="number_of_attributes" value="2"/>
@@ -25,12 +25,11 @@
         <parameter key="datamanagement" value="double_array"/>
         <parameter key="data_management" value="auto"/>
       </operator>
-      <operator activated="true" class="multiply" compatibility="9.8.001" expanded="true" height="103" name="Multiply" width="90" x="179" y="187"/>
-      <operator activated="true" class="concurrency:k_means" compatibility="9.8.001" expanded="true" height="82" name="Clustering" width="90" x="313" y="85">
+      <operator activated="true" class="concurrency:k_means" compatibility="9.8.001" expanded="true" height="82" name="Clustering" width="90" x="179" y="85">
         <parameter key="add_cluster_attribute" value="true"/>
         <parameter key="add_as_label" value="false"/>
         <parameter key="remove_unlabeled" value="false"/>
-        <parameter key="k" value="5"/>
+        <parameter key="k" value="25"/>
         <parameter key="max_runs" value="10"/>
         <parameter key="determine_good_start_values" value="true"/>
         <parameter key="measure_types" value="BregmanDivergences"/>
@@ -51,21 +50,8 @@
         <parameter key="use_local_random_seed" value="false"/>
         <parameter key="local_random_seed" value="1992"/>
       </operator>
-      <operator activated="true" class="generate_data" compatibility="9.8.001" expanded="true" height="68" name="Generate Data (2)" width="90" x="447" y="391">
-        <parameter key="target_function" value="gaussian mixture clusters"/>
-        <parameter key="number_examples" value="4999"/>
-        <parameter key="number_of_attributes" value="2"/>
-        <parameter key="attributes_lower_bound" value="-10.0"/>
-        <parameter key="attributes_upper_bound" value="10.0"/>
-        <parameter key="gaussian_standard_deviation" value="10.0"/>
-        <parameter key="largest_radius" value="10.0"/>
-        <parameter key="use_local_random_seed" value="true"/>
-        <parameter key="local_random_seed" value="2000"/>
-        <parameter key="datamanagement" value="double_array"/>
-        <parameter key="data_management" value="auto"/>
-      </operator>
-      <operator activated="true" class="multiply" compatibility="9.8.001" expanded="true" height="103" name="Multiply (2)" width="90" x="447" y="136"/>
-      <operator activated="true" class="anomaly_detection:cluster_based_anomaly" compatibility="3.0.000" expanded="true" height="103" name="cluster_based_anomaly" width="90" x="581" y="34">
+      <operator activated="true" class="multiply" compatibility="9.8.001" expanded="true" height="82" name="Multiply" width="90" x="313" y="34"/>
+      <operator activated="true" class="anomaly_detection:cluster_based_anomaly" compatibility="3.0.000" expanded="true" height="103" name="cluster_based_anomaly" width="90" x="514" y="85">
         <parameter key="algorithm" value="CMGOS"/>
         <parameter key="measure_types" value="MixedMeasures"/>
         <parameter key="mixed_measure" value="MixedEuclideanDistance"/>
@@ -87,7 +73,7 @@
         <parameter key="gamma_(ldcof)" value="0.1"/>
         <parameter key="use cluster size as weighting factor" value="true"/>
         <parameter key="probability for normal class" value="0.975"/>
-        <parameter key="gamma" value="0.1"/>
+        <parameter key="gamma" value="0.5"/>
         <parameter key="covariance estimation" value="Reduction"/>
         <parameter key="times to remove outlier" value="1"/>
         <parameter key="limit computations" value="false"/>
@@ -104,37 +90,39 @@
         <parameter key="use_local_random_seed" value="false"/>
         <parameter key="local_random_seed" value="1992"/>
       </operator>
-      <operator activated="true" class="apply_model" compatibility="9.8.001" expanded="true" height="82" name="Apply Model" width="90" x="715" y="187">
+      <operator activated="true" class="generate_data" compatibility="9.8.001" expanded="true" height="68" name="Generate Data (2)" width="90" x="380" y="238">
+        <parameter key="target_function" value="random"/>
+        <parameter key="number_examples" value="4999"/>
+        <parameter key="number_of_attributes" value="10"/>
+        <parameter key="attributes_lower_bound" value="-10.0"/>
+        <parameter key="attributes_upper_bound" value="10.0"/>
+        <parameter key="gaussian_standard_deviation" value="10.0"/>
+        <parameter key="largest_radius" value="10.0"/>
+        <parameter key="use_local_random_seed" value="true"/>
+        <parameter key="local_random_seed" value="1992"/>
+        <parameter key="datamanagement" value="double_array"/>
+        <parameter key="data_management" value="auto"/>
+      </operator>
+      <operator activated="true" class="filter_example_range" compatibility="9.8.001" expanded="true" height="82" name="Filter Example Range" width="90" x="514" y="238">
+        <parameter key="first_example" value="1"/>
+        <parameter key="last_example" value="1000"/>
+        <parameter key="invert_filter" value="false"/>
+      </operator>
+      <operator activated="true" class="apply_model" compatibility="9.8.001" expanded="true" height="82" name="Apply Model (2)" width="90" x="715" y="187">
         <list key="application_parameters"/>
         <parameter key="create_view" value="false"/>
       </operator>
-      <operator activated="true" class="apply_model" compatibility="9.8.001" expanded="true" height="82" name="Apply Model (3)" width="90" x="581" y="289">
-        <list key="application_parameters"/>
-        <parameter key="create_view" value="false"/>
-      </operator>
-      <operator activated="true" class="apply_model" compatibility="9.8.001" expanded="true" height="82" name="Apply Model (2)" width="90" x="849" y="289">
-        <list key="application_parameters"/>
-        <parameter key="create_view" value="false"/>
-      </operator>
-      <connect from_op="Generate Data" from_port="output" to_op="Multiply" to_port="input"/>
-      <connect from_op="Multiply" from_port="output 1" to_op="Clustering" to_port="example set"/>
-      <connect from_op="Multiply" from_port="output 2" to_op="Apply Model" to_port="unlabelled data"/>
-      <connect from_op="Clustering" from_port="cluster model" to_op="Multiply (2)" to_port="input"/>
+      <connect from_op="Generate Data" from_port="output" to_op="Clustering" to_port="example set"/>
+      <connect from_op="Clustering" from_port="cluster model" to_op="Multiply" to_port="input"/>
       <connect from_op="Clustering" from_port="clustered set" to_op="cluster_based_anomaly" to_port="exa"/>
-      <connect from_op="Generate Data (2)" from_port="output" to_op="Apply Model (3)" to_port="unlabelled data"/>
-      <connect from_op="Multiply (2)" from_port="output 1" to_op="cluster_based_anomaly" to_port="clu"/>
-      <connect from_op="Multiply (2)" from_port="output 2" to_op="Apply Model (3)" to_port="model"/>
-      <connect from_op="cluster_based_anomaly" from_port="exa" to_port="result 1"/>
-      <connect from_op="cluster_based_anomaly" from_port="mod" to_op="Apply Model" to_port="model"/>
-      <connect from_op="Apply Model" from_port="labelled data" to_port="result 2"/>
-      <connect from_op="Apply Model" from_port="model" to_op="Apply Model (2)" to_port="model"/>
-      <connect from_op="Apply Model (3)" from_port="labelled data" to_op="Apply Model (2)" to_port="unlabelled data"/>
-      <connect from_op="Apply Model (2)" from_port="labelled data" to_port="result 3"/>
+      <connect from_op="Multiply" from_port="output 1" to_op="cluster_based_anomaly" to_port="clu"/>
+      <connect from_op="cluster_based_anomaly" from_port="mod" to_op="Apply Model (2)" to_port="model"/>
+      <connect from_op="Generate Data (2)" from_port="output" to_op="Filter Example Range" to_port="example set input"/>
+      <connect from_op="Filter Example Range" from_port="example set output" to_op="Apply Model (2)" to_port="unlabelled data"/>
+      <connect from_op="Apply Model (2)" from_port="labelled data" to_port="result 1"/>
       <portSpacing port="source_input 1" spacing="0"/>
       <portSpacing port="sink_result 1" spacing="0"/>
-      <portSpacing port="sink_result 2" spacing="189"/>
-      <portSpacing port="sink_result 3" spacing="0"/>
-      <portSpacing port="sink_result 4" spacing="0"/>
+      <portSpacing port="sink_result 2" spacing="0"/>
     </process>
   </operator>
 </process>

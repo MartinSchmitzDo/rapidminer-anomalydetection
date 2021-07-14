@@ -53,4 +53,6 @@ extensionConfig {
 dependencies {
 	//compile 'com.google.guava:guava:26.0'
     compile group: 'org.apache.commons', name: 'commons-math', version: '2.2'
+    compile group: 'tw.edu.ntu.csie', name: 'libsvm', version: '3.25'
+    compile group: 'org.encog', name: 'encog-core', version: '3.3.0'
 }

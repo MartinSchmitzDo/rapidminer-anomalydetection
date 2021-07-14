@@ -1,5 +1,6 @@
 package com.rapidminer.extension.anomaly_detection.utility;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -22,6 +23,14 @@ public class AnomalyUtilities {
 		if (labelAttribute != null) {
 			labelData = new double[exaSet.size()];
 		}
+		List<Attribute> attributesOnApplicationSet = new ArrayList<>();
+		for(com.rapidminer.example.Attribute a : attributeList){
+				Attribute a2 = exaSet.getAttributes().get(a.getName());
+				if(a2==null) {
+					throw new OperatorException("Attribute "+a.getName()+" is not available");
+				}
+			attributesOnApplicationSet.add(a2);
+		}
 
 		int exaCounter = 0;
 		for (Example e : exaSet) {
@@ -35,7 +44,7 @@ public class AnomalyUtilities {
 				labelData[exaCounter] = value;
 			}
 			int attCounter = 0;
-			for (com.rapidminer.example.Attribute a : attributeList) {
+			for (com.rapidminer.example.Attribute a : attributesOnApplicationSet) {
 				double value = e.getValue(a);
 
 				if (failOnMissing && Double.isNaN(value)) {

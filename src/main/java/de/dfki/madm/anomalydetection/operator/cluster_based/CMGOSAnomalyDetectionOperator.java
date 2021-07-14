@@ -38,6 +38,7 @@ import com.rapidminer.tools.math.similarity.DistanceMeasure;
 import com.rapidminer.tools.math.similarity.DistanceMeasures;
 
 import de.dfki.madm.anomalydetection.evaluator.cluster_based.CMGOSEvaluator;
+import de.dfki.madm.anomalydetection.evaluator.cluster_based.NewCMGOSEvaluator;
 
 /**
  * The Operator for Covariance Matrix anomaly score.
