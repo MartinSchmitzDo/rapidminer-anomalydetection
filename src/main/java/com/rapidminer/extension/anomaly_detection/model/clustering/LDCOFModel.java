@@ -12,7 +12,7 @@ import de.dfki.madm.anomalydetection.evaluator.cluster_based.LDCOFEvaluator;
 public class LDCOFModel extends ClusterBasedAnomalyDetectionModel {
 	private double alpha;
 	private double beta;
-
+	LDCOFEvaluator evaluator;
 
 	private double gamma;
 	private boolean useGamma;
@@ -22,16 +22,20 @@ public class LDCOFModel extends ClusterBasedAnomalyDetectionModel {
 	}
 
 	@Override
-	public double[] evaluate(ExampleSet testSet) throws OperatorException {
+	public void train(ExampleSet trainSet) throws OperatorException {
+		double[][] points = AnomalyUtilities.exampleSetToDoubleArray(trainSet, getTrainingHeader().getAttributes(), true);
 
-		double[][] points = AnomalyUtilities.exampleSetToDoubleArray(testSet, getTrainingHeader().getAttributes(), true);
-		LDCOFEvaluator evaluator;
 		if(useGamma)
-			evaluator = new LDCOFEvaluator(gamma, distanceMeasure, points, getClusterIds(testSet), centroids, clusterSize);
+			evaluator = new LDCOFEvaluator(gamma, distanceMeasure, points, getClusterIds(trainSet), centroids, clusterSize);
 		else {
-		 evaluator =new LDCOFEvaluator(alpha, beta, distanceMeasure, points, getClusterIds(testSet), centroids, clusterSize);
+			evaluator =new LDCOFEvaluator(alpha, beta, distanceMeasure, points, getClusterIds(trainSet), centroids, clusterSize);
 		}
-		 double[] scores = evaluator.evaluate();
+	}
+
+	@Override
+	public double[] evaluate(ExampleSet testSet) throws OperatorException {
+		train(testSet);
+		double[] scores = evaluator.evaluate();
 		return scores;
 	}
 

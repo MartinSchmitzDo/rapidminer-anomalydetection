@@ -34,22 +34,27 @@ public class CMGOSModel extends ClusterBasedAnomalyDetectionModel {
 	}
 
 	@Override
+	public void train(ExampleSet trainSet) throws OperatorException {
+		int[] belongsToCluster = getClusterIds(trainSet);
+		double[][] points = AnomalyUtilities.exampleSetToDoubleArray(trainSet, getTrainingHeader().getAttributes(), true);
+		clusterSize = getClusterSize(trainSet);
+		evaluator = new NewCMGOSEvaluator(
+				distanceMeasure, points, belongsToCluster,
+				centroids, clusterSize, threads, removeRuns, probability, cov_sampling, randomGenerator,
+				percentage, lambda, cov, h, numberOfSubsets, fastMCDPoints, inititeration);
+	}
+
+	@Override
 	public double[] evaluate(ExampleSet testSet) throws OperatorException {
-		// CMGOS uses clusterSize[] not just for normalization, so we need to recalculate it
-		// on the test set.
-		int[] belongsToCluster = getClusterIds(testSet);
-		double[][] points = AnomalyUtilities.exampleSetToDoubleArray(testSet, getTrainingHeader().getAttributes(), true);
+
 		if (!trained) {
-			clusterSize = getClusterSize(testSet);
-			evaluator = new NewCMGOSEvaluator(
-					distanceMeasure, points, belongsToCluster,
-					centroids, clusterSize, threads, removeRuns, probability, cov_sampling, randomGenerator,
-					percentage, lambda, cov, h, numberOfSubsets, fastMCDPoints, inititeration);
+			train(testSet);
 			double original_score[] = evaluator.evaluate();
 			trained = true;
 			return original_score;
 		} else {
-
+			int[] belongsToCluster = getClusterIds(testSet);
+			double[][] points = AnomalyUtilities.exampleSetToDoubleArray(testSet, getTrainingHeader().getAttributes(), true);
 			double[] score = evaluator.score(points,belongsToCluster);
 			return score;
 		}
