@@ -154,17 +154,8 @@ public class ClusterBasedAnomalyDetectionOperator extends AbstractAnomalyOperato
 
 	public ClusterBasedAnomalyDetectionOperator(OperatorDescription description) {
 		super(description);
-		getTransformer().addGenerationRule(modOutput, AnomalyDetectionModel.class);
 		getTransformer().addPassThroughRule(clusterInput, clusterThroughput);
-		getTransformer().addRule(() -> {
-			ExampleSetMetaData emd = (ExampleSetMetaData) exaInput.getMetaData();
-			if (emd != null) {
-				emd.addAttribute(new AttributeMetaData(Attributes.OUTLIER_NAME, Ontology.REAL, Attributes.OUTLIER_NAME));
-				exaOutput.deliverMD(emd);
-			} else {
-				exaOutput.deliverMD(new ExampleSetMetaData());
-			}
-		});
+
 	}
 
 	public void doWork() throws OperatorException {
