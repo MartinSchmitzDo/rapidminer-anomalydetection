@@ -8,6 +8,11 @@
             <class>com.rapidminer.extension.anomaly_detection.operator.clustering.ClusterBasedAnomalyDetectionOperator
             </class>
         </operator>
+        <operator>
+            <key>rpca_based_anomaly</key>
+            <class>com.rapidminer.extension.anomaly_detection.operator.statistical.RPCAAnomalyDetectionAlgorithm
+            </class>
+        </operator>
 
         <group key="anomaly_detection">
             <icon>table_new.png</icon>
