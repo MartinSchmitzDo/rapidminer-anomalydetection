@@ -22,15 +22,12 @@ public class CBLOFModel extends ClusterBasedAnomalyDetectionModel {
 
 	}
 
-	@Override
-	public void train(ExampleSet trainSet) throws OperatorException {
-		double[][] points = AnomalyUtilities.exampleSetToDoubleArray(trainSet,getTrainingHeader().getAttributes(),true);
-		evaluator = new CBLOFEvaluator(alpha, beta,distanceMeasure,points,getClusterIds(trainSet),centroids,clusterSize,useClusterWeights);
-	}
-
 	public double[] evaluate(ExampleSet testSet) throws OperatorException {
-		train(testSet);
+		double[][] points = AnomalyUtilities.exampleSetToDoubleArray(testSet,getTrainingHeader().getAttributes(),true);
+
+		evaluator = new CBLOFEvaluator(alpha, beta,distanceMeasure,points,getClusterIds(testSet),centroids,clusterSize,useClusterWeights);
 		double[] scores = evaluator.evaluate();
+
 		return scores;
 	}
 
