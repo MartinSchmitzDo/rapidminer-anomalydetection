@@ -4,6 +4,7 @@ import com.rapidminer.example.Attribute;
 import com.rapidminer.example.Attributes;
 import com.rapidminer.example.Example;
 import com.rapidminer.example.ExampleSet;
+import com.rapidminer.example.set.RemappedExampleSet;
 import com.rapidminer.example.table.AttributeFactory;
 import com.rapidminer.operator.AbstractModel;
 import com.rapidminer.operator.OperatorException;
@@ -19,7 +20,8 @@ public abstract class AnomalyDetectionModel extends AbstractModel {
 	@Override
 	public ExampleSet apply(ExampleSet testSet) throws OperatorException {
 		Attribute scoreAttribute = addAnomalyAttribute(testSet);
-		double[] scores = evaluate(testSet);
+		ExampleSet mappedExampleSet = RemappedExampleSet.create(testSet, getTrainingHeader(), false, true);
+		double[] scores = evaluate(mappedExampleSet);
 		int i = 0;
 		for(Example e : testSet){
 			e.setValue(scoreAttribute,scores[i]);

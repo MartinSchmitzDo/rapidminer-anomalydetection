@@ -10,7 +10,7 @@
         </operator>
         <operator>
             <key>rpca_based_anomaly</key>
-            <class>com.rapidminer.extension.anomaly_detection.operator.statistical.RPCAAnomalyDetectionAlgorithm
+            <class>com.rapidminer.extension.anomaly_detection.operator.statistical.RPCAAnomalyDetectionOperator
             </class>
         </operator>
 

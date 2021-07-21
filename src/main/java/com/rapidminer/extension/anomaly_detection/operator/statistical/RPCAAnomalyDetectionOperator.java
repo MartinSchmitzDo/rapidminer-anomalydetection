@@ -14,7 +14,7 @@ import com.rapidminer.tools.OperatorService;
 
 import java.util.List;
 
-public class RPCAAnomalyDetectionAlgorithm extends AbstractAnomalyOperator {
+public class RPCAAnomalyDetectionOperator extends AbstractAnomalyOperator {
 
     public static final String PARAMETER_REDUCTION_TYPE = "component_usage";
     public static final String PARAMETER_REDUCTION_TYPE_DESCRIPTION = "Select wich principal components should be used for anomaly score computation. Major PCs are typically preferred in literature.";
@@ -70,7 +70,7 @@ public class RPCAAnomalyDetectionAlgorithm extends AbstractAnomalyOperator {
     public static final String PARAMETER_VALUE_THRESHOLD_DESCRIPTION = "The maximum allowed eigenvalue for minor components taken into account.";
 
 
-    public RPCAAnomalyDetectionAlgorithm(OperatorDescription description) {
+    public RPCAAnomalyDetectionOperator(OperatorDescription description) {
         super(description);
     }
 
