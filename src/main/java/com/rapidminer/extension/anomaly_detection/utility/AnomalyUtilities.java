@@ -1,6 +1,7 @@
 package com.rapidminer.extension.anomaly_detection.utility;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -8,10 +9,12 @@ import java.util.Set;
 import org.apache.commons.math3.util.Pair;
 
 import com.rapidminer.example.Attribute;
+import com.rapidminer.example.AttributeRole;
 import com.rapidminer.example.Attributes;
 import com.rapidminer.example.Example;
 import com.rapidminer.example.ExampleSet;
 import com.rapidminer.operator.OperatorException;
+import com.rapidminer.tools.Tools;
 
 
 public class AnomalyUtilities {
@@ -24,11 +27,11 @@ public class AnomalyUtilities {
 			labelData = new double[exaSet.size()];
 		}
 		List<Attribute> attributesOnApplicationSet = new ArrayList<>();
-		for(com.rapidminer.example.Attribute a : attributeList){
-				Attribute a2 = exaSet.getAttributes().get(a.getName());
-				if(a2==null) {
-					throw new OperatorException("Attribute "+a.getName()+" is not available");
-				}
+		for (com.rapidminer.example.Attribute a : attributeList) {
+			Attribute a2 = exaSet.getAttributes().get(a.getName());
+			if (a2 == null) {
+				throw new OperatorException("Attribute " + a.getName() + " is not available");
+			}
 			attributesOnApplicationSet.add(a2);
 		}
 
@@ -68,10 +71,8 @@ public class AnomalyUtilities {
 	 * {@link com.rapidminer.example.table.NominalAttribute} can be used, but the returned values
 	 * contain the integer mapping values.
 	 *
-	 * @param exaSet
-	 *            ExampleSet from which the data shall be extracted
-	 * @param atts
-	 *            Set of Attributes for which the data shall be extracted
+	 * @param exaSet ExampleSet from which the data shall be extracted
+	 * @param atts   Set of Attributes for which the data shall be extracted
 	 * @return 2-d double array (Examples x Attributes) with the extracted data
 	 */
 	public static double[][] exampleSetToDoubleArray(ExampleSet exaSet, Set<Attribute> atts,
@@ -82,24 +83,24 @@ public class AnomalyUtilities {
 	}
 
 	/**
-	 * Extracts the double values for the provided {@link com.rapidminer.example.Attributess} from
+	 * Extracts the double values for the provided {@link com.rapidminer.example.Attributes} from
 	 * the {@link ExampleSet} and returns them as a 2-d double array (Examples x Attributes). Note
 	 * that this method neither checks if the {@link com.rapidminer.example.Attribute} is part of
 	 * the {@link ExampleSet}, if it has a specific value type nor if it has a special role. Also
 	 * {@link com.rapidminer.example.table.NominalAttribute} can be used, but the returned values
 	 * contain the integer mapping values.
 	 *
-	 * @param exaSet
-	 *            ExampleSet from which the data shall be extracted
-	 * @param atts
-	 *            Attributes for which the data shall be extracted
+	 * @param exaSet ExampleSet from which the data shall be extracted
+	 * @param atts   Attributes for which the data shall be extracted
 	 * @return 2-d double array (Examples x Attributes) with the extracted data
 	 */
 	public static double[][] exampleSetToDoubleArray(ExampleSet exaSet, Attributes atts, boolean failOnMissing)
 			throws OperatorException {
 		List<com.rapidminer.example.Attribute> convertedAtts = new LinkedList<>();
-		for (com.rapidminer.example.Attribute a : atts) {
-			convertedAtts.add(a);
+		for (Iterator<AttributeRole> it = atts.regularAttributes(); it.hasNext(); ) {
+			AttributeRole a = it.next();
+
+			convertedAtts.add(a.getAttribute());
 		}
 		return convertExampleSetToDoubleArrays(exaSet, convertedAtts, null, failOnMissing).getFirst();
 	}
