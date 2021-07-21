@@ -430,4 +430,8 @@
         <key>cluster_based_anomaly</key>
         <name>Detect Outlier (Clustering)</name>
     </operator>
+    <operator>
+        <key>rpca_based_anomaly</key>
+        <name>Detect Outlier (rPCA)</name>
+    </operator>
 </operatorHelp>

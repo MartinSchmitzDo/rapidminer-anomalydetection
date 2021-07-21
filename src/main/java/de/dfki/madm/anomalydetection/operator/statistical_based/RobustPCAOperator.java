@@ -338,9 +338,9 @@ public class RobustPCAOperator extends Operator {
 	@Override
 	public List<ParameterType> getParameterTypes() {
 		List<ParameterType> list = super.getParameterTypes();
-		
+
 		list.add(new ParameterTypeDouble(PARAMETER_OUTLIER_PROBABILITY, PARAMETER_OUTLIER_PROBABILITY_DESCRIPTION, 0, 1.0, 0.975, false));
-		
+
 		ParameterType type = new ParameterTypeCategory(PARAMETER_REDUCTION_TYPE, PARAMETER_REDUCTION_TYPE_DESCRIPTION, PCS_METHODS, PCS_ALL);
 		type.setExpert(false);
 		list.add(type);
@@ -366,13 +366,13 @@ public class RobustPCAOperator extends Operator {
 		type.setExpert(false);
 		type.registerDependencyCondition(new EqualTypeCondition(this, PARAMETER_REDUCTION_TYPE, PCS_METHODS, false, PCS_LOWER, PCS_BOTH));
 		list.add(type);
-		
+
 		type = new ParameterTypeDouble(PARAMETER_VALUE_THRESHOLD, PARAMETER_VALUE_THRESHOLD_DESCRIPTION, 0, Double.MAX_VALUE, 0.20);
 		type.setExpert(false);
 		type.registerDependencyCondition(new EqualTypeCondition(this, PARAMETER_REDUCTION_TYPE, PCS_METHODS, true, PCS_LOWER, PCS_BOTH));
 		type.registerDependencyCondition(new EqualTypeCondition(this, PARAMETER_LOW_METHODS, PCS_LOW_METHODS, true, PCS_LOW_VAL));
 		list.add(type);
-		
+
 		type = new ParameterTypeInt(PARAMETER_NUMBER_OF_COMPONENTS_LOW, PARAMETER_NUMBER_OF_COMPONENTS_LOW_DESCRIPTION, 1, Integer.MAX_VALUE, 1);
 		type.setExpert(false);
 		type.registerDependencyCondition(new EqualTypeCondition(this, PARAMETER_REDUCTION_TYPE, PCS_METHODS, true, PCS_LOWER, PCS_BOTH));

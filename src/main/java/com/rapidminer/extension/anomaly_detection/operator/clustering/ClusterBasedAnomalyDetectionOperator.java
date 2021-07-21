@@ -9,6 +9,7 @@ import com.rapidminer.extension.anomaly_detection.model.AnomalyDetectionModel;
 import com.rapidminer.extension.anomaly_detection.model.clustering.CBLOFModel;
 import com.rapidminer.extension.anomaly_detection.model.clustering.CMGOSModel;
 import com.rapidminer.extension.anomaly_detection.model.clustering.LDCOFModel;
+import com.rapidminer.extension.anomaly_detection.operator.AbstractAnomalyOperator;
 import com.rapidminer.operator.Operator;
 import com.rapidminer.operator.OperatorCapability;
 import com.rapidminer.operator.OperatorDescription;
@@ -38,7 +39,7 @@ import com.rapidminer.tools.math.similarity.DistanceMeasures;
 import com.rapidminer.tools.math.similarity.numerical.EuclideanDistance;
 
 
-public class ClusterBasedAnomalyDetectionOperator extends Operator implements CapabilityProvider {
+public class ClusterBasedAnomalyDetectionOperator extends AbstractAnomalyOperator {
 
 	public static final String PARAMETER_ALGORITHM = "algorithm";
 	private final static String CBLOF = "CBLOF";
@@ -144,10 +145,7 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator implements Ca
 	public static String PARAMETER_GAMMA = "gamma";
 
 
-	protected InputPort exaInput = getInputPorts().createPort("exa", ExampleSet.class);
 	protected InputPort clusterInput = getInputPorts().createPort("clu", ClusterModel.class);
-	protected OutputPort exaOutput = getOutputPorts().createPort("exa");
-	protected OutputPort modOutput = getOutputPorts().createPort("mod");
 	protected OutputPort clusterThroughput = getOutputPorts().createPort("clu");
 
 	private DistanceMeasureHelper measureHelper = new DistanceMeasureHelper(
@@ -156,17 +154,8 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator implements Ca
 
 	public ClusterBasedAnomalyDetectionOperator(OperatorDescription description) {
 		super(description);
-		getTransformer().addGenerationRule(modOutput, AnomalyDetectionModel.class);
 		getTransformer().addPassThroughRule(clusterInput, clusterThroughput);
-		getTransformer().addRule(() -> {
-			ExampleSetMetaData emd = (ExampleSetMetaData) exaInput.getMetaData();
-			if (emd != null) {
-				emd.addAttribute(new AttributeMetaData(Attributes.OUTLIER_NAME, Ontology.REAL, Attributes.OUTLIER_NAME));
-				exaOutput.deliverMD(emd);
-			} else {
-				exaOutput.deliverMD(new ExampleSetMetaData());
-			}
-		});
+
 	}
 
 	public void doWork() throws OperatorException {
@@ -373,18 +362,5 @@ public class ClusterBasedAnomalyDetectionOperator extends Operator implements Ca
 	}
 
 
-	@Override
-	public boolean supportsCapability(OperatorCapability capability) {
-		switch (capability) {
-			case NUMERICAL_LABEL:
-			case NUMERICAL_ATTRIBUTES:
-			case ONE_CLASS_LABEL:
-			case NO_LABEL:
-			case POLYNOMINAL_LABEL:
-			case BINOMINAL_LABEL:
-				return true;
-			default:
-				return false;
-		}
-	}
+
 }
